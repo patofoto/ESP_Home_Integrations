@@ -1,0 +1,229 @@
+esphome:
+  name: "t-display-s3"
+
+external_components:
+  - source: github://landonr/lilygo-tdisplays3-esphome
+    components: [tdisplays3]
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  framework:
+    type: arduino
+
+# Enable Home Assistant API
+api:
+
+ota:
+  password: "6ada29f6f41ce1685d29d406efd25fa4"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+captive_portal:  
+
+bluetooth_proxy:
+  active: true  
+
+time:
+  - platform: homeassistant
+    id: ha_time
+
+switch:
+  - platform: gpio
+    pin: GPIO38
+    name: "Backlight"
+    id: backlight
+    internal: true
+    restore_mode: RESTORE_DEFAULT_ON
+
+dallas:
+ - pin: GPIO43
+   update_interval: 5s
+  
+
+sensor:
+  - platform: dallas
+    address: 0xd901211238e13128
+    name: "Developer Temperature"
+    resolution: 12
+    id: devTemp  
+
+  - platform: homeassistant
+    name: "Xbox Temp"
+    entity_id: sensor.xbox_temperature
+    id: xbox_temp
+
+  - platform: homeassistant
+    name: "Server Temp"
+    entity_id: sensor.server_closet_temperature
+    id: server_temp
+
+  - platform: homeassistant
+    name: "Kitchen Temp"
+    entity_id: sensor.nest_kitchen_temperature
+    id: kitchen_temp
+
+  - platform: homeassistant
+    name: "Upstairs Temp"
+    entity_id: sensor.nest_upstairs_hallway_temperature
+    id: upstairs_temp
+
+  - platform: homeassistant
+    name: "Studio Temp"
+    entity_id: sensor.nest_studio_temperature
+    id: studio_temp
+
+  - platform: homeassistant
+    name: "Outside"
+    entity_id: weather.127_lake_ave
+    attribute: temperature
+    id: out_temp
+
+  # - platform: adc
+  #   pin: 4
+  #   # attenuation: 11db
+  #   name: VBatt
+  #   id: vcc
+  #   update_interval: 5s
+
+text_sensor:
+  - platform: homeassistant
+    name: "Weather Condition"
+    entity_id: weather.127_lake_ave
+    id: condition
+
+  - platform: homeassistant
+    name: "Weather Condition"
+    entity_id: switch.utility_closet_fan_socket
+    id: fanState
+
+  - platform: homeassistant
+    name: "Patofoto Xbox Live User"
+    entity_id: binary_sensor.patofoto
+    id: xboxLivePatofoto
+  
+  - platform: wifi_info
+    ip_address:
+      name: ESP IP Address
+    ssid:
+      name: ESP Connected SSID
+    bssid:
+      name: ESP Connected BSSID
+    mac_address:
+      name: ESP Mac Wifi Address
+    scan_results:
+      name: ESP Latest Scan Results
+   
+font:
+  - file:
+      type: gfonts
+      family: Roboto
+      weight: 300 
+    id: font1
+    size: 14
+
+# thin: 101
+# extra-light: 200
+# light: 300
+# regular: 400 (default)
+# medium: 500
+# semi-bold: 600
+# bold: 700
+# extra-bold: 800
+# black: 900   
+
+  - file: 'Tahoma.ttf'  
+    id: font2
+    size: 14
+    
+  - file: 'Tahoma-Bold.ttf'
+    id: font3
+    size: 14   
+
+# Enable logging
+logger:
+
+#Web Server
+web_server:
+  port: 80
+
+mqtt:
+  broker: !secret mqtt_ip
+  port: !secret mqtt_port
+  username: !secret mqtt_user
+  password: !secret mqtt_pass
+
+
+#Display Resolution 320x170
+display:
+  - platform: tdisplays3
+    id: disp
+    update_interval: 1s
+    rotation: 270
+    lambda: |-
+
+      auto headerBckgrd = Color(210, 0, 0);
+      auto entityNames = Color(0, 255, 0);
+      auto dataBckgrnd = Color(101, 101, 101);
+      auto entityBckgrnd = Color(50, 50, 50);
+      auto data = Color(255, 255, 255);
+      auto orange = Color(255, 165, 0);
+      auto black = Color(0, 0, 0);
+
+      auto col1 = 60;
+      auto col2 = 70;
+      auto col3 = 225;
+      auto col4 = 235;
+      auto fontSize = 14;
+      auto spacing = 2;
+      auto line1 = 0;
+
+      it.filled_rectangle(0, 0, 320, 170, dataBckgrnd);
+      it.filled_rectangle(0, 18, 65, 170, entityBckgrnd);
+      it.filled_rectangle(160, 18, 70, 170, entityBckgrnd);
+      it.filled_rectangle(0, 0, 320, 19, headerBckgrd);
+      it.line(160, 19, 160, 170, headerBckgrd);
+
+      it.printf(160, line1, id(font3), data, TextAlign::TOP_CENTER, "Temperatures");
+
+      it.print((col1), 21, id(font2), entityNames, TextAlign::TOP_RIGHT, "Date");
+      it.printf(col2, 21, id(font2), data, TextAlign::TOP_LEFT, id(ha_time).now().strftime("%m-%d-%Y").c_str());
+      it.print(col1, 37, id(font2), entityNames, TextAlign::TOP_RIGHT, "Time");
+      it.printf(col2, 37, id(font2), data, TextAlign::TOP_LEFT, id(ha_time).now().strftime("%I:%M:%S %p").c_str());
+
+      it.print(col1, 53, id(font2), entityNames, TextAlign::TOP_RIGHT, "Xbox");
+      it.printf(col2, 53, id(font2), data, TextAlign::TOP_LEFT, "%.1f° F", id(xbox_temp).state);
+      it.print(col1, 69, id(font2), entityNames, TextAlign::TOP_RIGHT, "Server");
+      it.printf(col2, 69, id(font2), data, TextAlign::TOP_LEFT, "%.1f° F", id(server_temp).state);
+      it.print(col1, 85, id(font2), entityNames, TextAlign::TOP_RIGHT, "Kitchen");
+      it.printf(col2, 85, id(font2), data, TextAlign::TOP_LEFT, "%.1f° F", id(kitchen_temp).state);
+      it.print(col1, 101, id(font2), entityNames, TextAlign::TOP_RIGHT, "Upstairs");
+      it.printf(col2, 101, id(font2), data, TextAlign::TOP_LEFT, "%.1f° F", id(upstairs_temp).state);
+      it.print(col1, 117, id(font2), entityNames, TextAlign::TOP_RIGHT, "Studio");
+      it.printf(col2, 117, id(font2), data, TextAlign::TOP_LEFT, "%.1f° F", id(studio_temp).state);
+      //it.print(col1, 133, id(font2), entityNames, TextAlign::TOP_RIGHT, "Outside");
+      //it.printf(col2, 133, id(font2), data, TextAlign::TOP_LEFT, "%.1f° F", id(out_temp).state);
+      //it.print(col1, 149, id(font2), entityNames, TextAlign::TOP_RIGHT, "Condition");
+      //it.printf(col2, 149, id(font2), data, TextAlign::TOP_LEFT, "%s", id(condition).state.c_str());
+
+      it.print(col3, 21, id(font2), entityNames, TextAlign::TOP_RIGHT, "Outside");
+      it.printf(col4, 21, id(font2), data, TextAlign::TOP_LEFT, "%.1f° F", id(out_temp).state);
+      it.print(col3, 37, id(font2), entityNames, TextAlign::TOP_RIGHT, "Condition");
+      it.printf(col4, 37, id(font2), data, TextAlign::TOP_LEFT, "%s", id(condition).state.c_str());
+
+      it.print(col3, 53, id(font2), entityNames, TextAlign::TOP_RIGHT, "Patofoto");
+      it.printf(col4, 53, id(font2), data, TextAlign::TOP_LEFT, "%s", id(xboxLivePatofoto).state.c_str());
+      it.print(col3, 69, id(font2), entityNames, TextAlign::TOP_RIGHT, "Serv Fan");
+      it.printf(col4, 69, id(font2), data, TextAlign::TOP_LEFT, "%s", id(fanState).state.c_str());
+      it.print(col3, 85, id(font2), entityNames, TextAlign::TOP_RIGHT, "IP");
+      //it.printf(col4, 85, id(font2), data, TextAlign::TOP_LEFT, "%s", id(ESP IP Address).state.c_str());
+      it.print(col3, 101, id(font2), entityNames, TextAlign::TOP_RIGHT, "DEV");
+      it.printf(col4, 101, id(font2), data, TextAlign::TOP_LEFT, "%.1f° C", id(devTemp).state);
+      //it.print(col3, 117, id(font2), entityNames, TextAlign::TOP_RIGHT, "Battery");
+      //it.printf(col4, 117, id(font2), data, TextAlign::TOP_LEFT, "%.1f (%.2f %%)", id(vcc).state);
+      //it.print(col3, 133, id(font2), entityNames, TextAlign::TOP_RIGHT, "Outside");
+      //it.printf(col4, 133, id(font2), data, TextAlign::TOP_LEFT, "%.1f° F", id(out_temp).state);
+      //it.print(col3, 149, id(font2), entityNames, TextAlign::TOP_RIGHT, "Condition");
+      //it.printf(col4, 149, id(font2), data, TextAlign::TOP_LEFT, "%s", id(condition).state.c_str());
